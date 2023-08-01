@@ -169,7 +169,7 @@
  *
  * @arg SlideProbability
  * @text 停止時滑り確率
- * @desc 停止時に滑るコマ数の確率(XXX/100)
+ * @desc 停止時に滑るコマ数の確率(%)
  * 1 = 1コマ滑りの確率、2 = 2コマ滑りの… 0コマ（滑りなし）は残りの確率
  * @type number[]
  * @default [25,25,20,15]
@@ -237,11 +237,11 @@ const ExcDoublingSlotMachinePluginName = document.currentScript.src.match(/^.*\/
 	//--------------------------------------------------
 	// 画像素材の名前
 	const PICT_PATH				= "img/dSlot/";		// スロットの画像ファイル格納フォルダ
-	const PICT_FRAME_NAME		= "slot_frame";	// 通し番号を除くフレームの画像ファイル名
+	const PICT_FRAME_NAME		= "slot_frame";		// フレームの画像ファイル名
 	const PICT_PATTERN_NAME		= "slot_pattern_";	// 通し番号を除く絵柄の画像ファイル名
 	const PICT_BLUR_TRAILING	= "_blur";			// 回転中画像につく末尾
 	const PICT_GLOW_TRAILING	= "_glow";			// 点滅用画像につく末尾
-	const PICT_TEXT_BACK_NAME	= "slot_bar_";		// l,rを除くテキスト項目背景画像のファイル名
+	const PICT_TEXT_BACK_NAME	= "slot_text_BG_";	// l,rを除くテキスト項目背景画像のファイル名
 	
 	// スロットマシンのサイズ
 	const SLOT_HEIGHT = 624;
