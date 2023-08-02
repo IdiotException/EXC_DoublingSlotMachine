@@ -1063,7 +1063,6 @@ const ExcDoublingSlotMachinePluginName = document.currentScript.src.match(/^.*\/
 			}
 		}
 
-		console.log(ret);
 		return ret;
 	};
 
