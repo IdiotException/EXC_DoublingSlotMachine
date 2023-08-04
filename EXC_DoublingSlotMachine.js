@@ -2,7 +2,7 @@
 // x倍スロットマシーンプラグイン
 // Exc_DoublingSlotMashine.js
 // ----------------------------------------------------------------------------
-// Copyright (c) 2021 IdiotException
+// Copyright (c) 2023 IdiotException
 // This software is released under the MIT License.
 // http://opensource.org/licenses/mit-license.php
 // ----------------------------------------------------------------------------
@@ -14,7 +14,7 @@
  * @target MZ
  * @plugindesc x倍スロットマシーンを追加します。
  * @author IdiotException
- * @url https://github.com/IdiotException/RPGMakerMZ
+ * @url https://github.com/IdiotException/EXC_DoublingSlotMachine
  * @help 揃った絵柄の倍率を全て掛け算し、
  * その倍率だけ増えた掛け金を払い戻すスロットマシーンです。
  * 主にキーボードで操作することが想定されています。
@@ -41,9 +41,6 @@
  *  末尾なし：停止時の基本絵柄です
  *  glow：絵柄がそろった際の光った状態のものです
  *  blur：回転中に画像がぶれている状態のものです
- * 　　　　デフォルトの画像はその必要がないためぶれていません
- * 　　　　画像によっては上下のブレを追加することで回転中の
- * 　　　　視認性がよくなります。
  * 
  * リールの絵柄並びの指定について
  *  リールの絵柄の数（リールの長さ）は自由に変更できます。
@@ -154,26 +151,26 @@
  * @text 左リール絵柄並び
  * @desc 左リールの絵柄の並び
  * @type number[]
- * @default [1,8,3,1,2,4,3,4,7,6,1,1,5,4,5,1,4,5,7,3,3,3,8,4]
+ * @default [1,8,1,2,4,3,3,3,4,7,6,1,1,5,4,5,1,4,5,7,3,8,8,8,4,4,4]
  *
  * @arg CenterReelPattern
  * @text 中央リール絵柄並び
  * @desc 中央リールの絵柄の並び
  * @type number[]
- * @default [7,8,2,1,6,5,4,1,3,2,1,6,1,5,4,3,1,2,8,4,1,1,3,3]
+ * @default [7,8,2,1,6,5,4,1,3,2,1,6,1,5,4,4,4,3,1,2,8,4,1,1,3,3,3]
  *
  * @arg RightReelPattern
  * @text 右リール絵柄並び
  * @desc 右リールの絵柄の並び
  * @type number[]
- * @default [5,8,4,4,3,3,3,5,4,6,6,4,1,1,6,1,8,5,6,5,4,3,2,1]
+ * @default [2,2,4,4,4,3,3,3,5,4,6,6,4,1,1,6,8,8,5,6,5,4,3,2,1,1,1]
  *
  * @arg SlideProbability
  * @text 停止時滑り確率
  * @desc 停止時に滑るコマ数の確率(%)
- * 1 = 1コマ滑りの確率、2 = 2コマ滑りの… 0コマ（滑りなし）は残りの確率
+ * 1 = 0コマ滑り（滑りなし）の確率、2 = 1コマ滑りの確率、3 = 2コマ滑りの…
  * @type number[]
- * @default [25,25,20,15]
+ * @default [0,40,30,20,10]
  *
  * @arg AlternativeImageFolder
  * @text 別画像フォルダ名
@@ -238,6 +235,7 @@ const ExcDoublingSlotMachinePluginName = document.currentScript.src.match(/^.*\/
 	//--------------------------------------------------
 	// 画像素材の名前
 	const PICT_PATH				= "img/dSlot/";		// スロットの画像ファイル格納フォルダ
+	const PICT_BACK_NAME		= "slot_bg";		// フレームの画像ファイル名
 	const PICT_FRAME_NAME		= "slot_frame";		// フレームの画像ファイル名
 	const PICT_PATTERN_NAME		= "slot_pattern_";	// 通し番号を除く絵柄の画像ファイル名
 	const PICT_BLUR_TRAILING	= "_blur";			// 回転中画像につく末尾
@@ -256,13 +254,13 @@ const ExcDoublingSlotMachinePluginName = document.currentScript.src.match(/^.*\/
 	// リールの絵柄の画像ファイル関連の設定
 	const REEL_PATTERN_HEIGHT	= 100;		// 絵柄の縦の間隔
 	const REEL_PATTERN_WIDTH	= 200;		// 絵柄の横幅（使ってない
-	const REEL_ROTATION_SPEED	= 80;		// 絵柄の移動速度（px/f）※絵柄の縦の間隔が上限
+	const REEL_ROTATION_SPEED	= 40;		// 絵柄の移動速度（px/f）※絵柄の縦の間隔が上限
 	const REEL_FLASH_FRAME		= 11;		// リールの結果の絵柄の点滅切り替わり待ちフレーム数
 
 	// キーの入力不可時間
 	const INIT_DISABLE_FRAME		= 15	// 開始直後等のボタン誤入力を防ぐ
 	const INS_COIN_DISABLE_FRAME	= 8;	// コイン投入からレバー操作の入力不可フレーム数
-	const STARTING_DISABLE_FRAME	= 30;	// 回転直後の停止入力不可時間のフレーム数
+	const STARTING_DISABLE_FRAME	= 12;	// 回転直後の停止入力不可時間のフレーム数
 	const STOP_DISABLE_FRAME		= 6;	// 停止同時押し不可時間のフレーム数
 	const RESULT_DISABLE_FRAME		={  lose:5,
 										win :90 };	// コイン払い戻し中入力不可時間
@@ -360,7 +358,7 @@ const ExcDoublingSlotMachinePluginName = document.currentScript.src.match(/^.*\/
 	let _resultFlash = {mode:0, count:0, speed:REEL_FLASH_FRAME};
 
 	// 画像用Bitmapの保持
-	let _bmpPatterns, _bmpFrame, _bmpTextBackR, _bmpTextBackL;
+	let _bmpPatterns, _bmpBack, _bmpFrame, _bmpTextBackR, _bmpTextBackL;
 
 	// テキスト表示Bitmapの保持
 	let _txtWin, _txtBet, _txtCoin, _txtGameCnt;
@@ -502,6 +500,9 @@ const ExcDoublingSlotMachinePluginName = document.currentScript.src.match(/^.*\/
 			imgFolder = PICT_PATH;
 		}
 		
+		// 背景の読み込み
+		_bmpBack = ImageManager.loadBitmap(imgFolder, PICT_BACK_NAME, 0, false);
+
 		// フレームの読み込み
 		_bmpFrame = ImageManager.loadBitmap(imgFolder, PICT_FRAME_NAME, 0, false);
 		
@@ -523,9 +524,13 @@ const ExcDoublingSlotMachinePluginName = document.currentScript.src.match(/^.*\/
 
 	// 背景設定
 	EXC_DoublingSlotMachine.prototype.createBackground = function() {
+		// 画面背景の設定
         this._backgroundSprite = new Sprite();
         this._backgroundSprite.bitmap = SceneManager.backgroundBitmap();
         this.addChild(this._backgroundSprite);
+
+		// リール背景の設定
+		this.createSprite(_bmpBack, 0, 0, 0);
 	};
 	
 	// リール初期設定
@@ -1058,7 +1063,7 @@ const ExcDoublingSlotMachinePluginName = document.currentScript.src.match(/^.*\/
 		for(let i = 0; i < _slideProb.length; i++) {
 			workSum += Number(_slideProb[i] || 0);
 			if(rnd < workSum) {
-				ret = i + 1;
+				ret = i;
 				break;
 			}
 		}
