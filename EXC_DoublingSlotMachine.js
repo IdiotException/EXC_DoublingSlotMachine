@@ -7,7 +7,7 @@
 // http://opensource.org/licenses/mit-license.php
 // ----------------------------------------------------------------------------
 // Version
-// 1.0.0 2023/07/20 初版
+// 1.0.0 2023/08/24 初版
 //=============================================================================
 
 /*:
@@ -20,6 +20,7 @@
  * 主にキーボードで操作することが想定されています。
  * 
  * あらかじめベットするコイン数を変数に設定する必要があります。
+ * 
  * 
  * 操作方法
  * 　↑キー：掛け金の投入、再度押下するとスロットスタート。
@@ -36,11 +37,6 @@
  *   オリジナルの画像が利用できます。
  * 　他に、起動時コマンドで別フォルダを指定することでマシンごとに
  * 　別な画像を設定することもできます。
- * 
- * 絵柄ファイルについて
- *  末尾なし：停止時の基本絵柄です
- *  glow：絵柄がそろった際の光った状態のものです
- *  blur：回転中に画像がぶれている状態のものです
  * 
  * リールの絵柄並びの指定について
  *  リールの絵柄の数（リールの長さ）は自由に変更できます。
@@ -59,6 +55,16 @@
  *   MITライセンスです。
  *   作者に無断で改変、再配布が可能で、
  *   利用形態（商用、18禁利用等）についても制限はありません。
+ * 
+ * 
+ * 起動時に直前の選択肢ウィンドウが残ってしまう場合
+ *   スロットの起動コマンドの直前に7~10フレーム程度のウェイトを入れてください。
+ *   ウィンドウが消えきる前にスロットを起動してしまうとそれが画面に残ります。
+ * 
+ * 絵柄ファイルについて
+ *  末尾なし：停止時の基本絵柄です
+ *  glow：絵柄がそろった際の光った状態のものです
+ *  blur：回転中に画像がぶれている状態のものです
  * 
  * @param CoinID
  * @text コイン変数ID
@@ -172,6 +178,14 @@
  * @type number[]
  * @default [0,40,30,20,10]
  *
+ * @arg ReelSpeed
+ * @text リール回転速度
+ * @desc リールの絵柄の移動速度(px/f)
+ * @type number
+ * @max 100
+ * @min 1
+ * @default 40
+ *
  * @arg AlternativeImageFolder
  * @text 別画像フォルダ名
  * @desc 別な画像取得先フォルダ名 ex.) img/dSlot2/
@@ -224,9 +238,6 @@
 let _coinInsertSE, _reelStartSE, _reelStopSE, _winSe, _loseSE, _buyCoinSE, _buzzerSE;
 const ExcDoublingSlotMachinePluginName = document.currentScript.src.match(/^.*\/(.+)\.js$/)[1];
 
-// メモ TODO
-// helpを更新しないと
-
 (function() {
 	"use strict";
 	
@@ -254,7 +265,6 @@ const ExcDoublingSlotMachinePluginName = document.currentScript.src.match(/^.*\/
 	// リールの絵柄の画像ファイル関連の設定
 	const REEL_PATTERN_HEIGHT	= 100;		// 絵柄の縦の間隔
 	const REEL_PATTERN_WIDTH	= 200;		// 絵柄の横幅（使ってない
-	const REEL_ROTATION_SPEED	= 40;		// 絵柄の移動速度（px/f）※絵柄の縦の間隔が上限
 	const REEL_FLASH_FRAME		= 11;		// リールの結果の絵柄の点滅切り替わり待ちフレーム数
 
 	// キーの入力不可時間
@@ -335,6 +345,8 @@ const ExcDoublingSlotMachinePluginName = document.currentScript.src.match(/^.*\/
 	// コマンド起動時の引数受け取り変数
 	// 滑りの確率格納用
 	let _slideProb;
+	// 絵柄の移動速度格納用
+	let _reelSpeed;
 	// 各種SE指定格納用
 	let _coinInsertSE, _reelStartSE, _reelStopSE, _winSe, _loseSE, _buyCoinSE, _buzzerSE;
 	// 画像差し替え用
@@ -352,7 +364,7 @@ const ExcDoublingSlotMachinePluginName = document.currentScript.src.match(/^.*\/
 	let _sprFrame;
 
 	// リールの状態管理変数
-	let _reelPattern =  [];
+	let _reelPattern = [];
 	let _reelObj =[];
 	let _resultIndexes = [[],[],[]];
 	let _resultFlash = {mode:0, count:0, speed:REEL_FLASH_FRAME};
@@ -397,6 +409,7 @@ const ExcDoublingSlotMachinePluginName = document.currentScript.src.match(/^.*\/
 		_reelPattern.push(JSON.parse(args['CenterReelPattern'] || "[7,8,2,1,6,5,4,1,3,2,1,6,1,5,4,3,1,8,4,1,1,3,3,3]"));
 		_reelPattern.push(JSON.parse(args['RightReelPattern'] || "[5,8,4,4,3,3,3,5,4,6,6,4,1,1,6,1,8,5,6,5,4,3,2,1]"));
 		_slideProb = JSON.parse(args['SlideProbability'] || "[25,25,20,15]");
+		_reelSpeed = Number(args['ReelSpeed'] || 40);
 		_altImageFolder = String(args['AlternativeImageFolder'] || "");
 		_coinInsertSE = String(args['CoinInsertSE'] || "Coin");
 		_reelStartSE = String(args['ReelStartSE'] || "Door6");
@@ -524,15 +537,17 @@ const ExcDoublingSlotMachinePluginName = document.currentScript.src.match(/^.*\/
 
 	// 背景設定
 	EXC_DoublingSlotMachine.prototype.createBackground = function() {
+
 		// 画面背景の設定
-        this._backgroundSprite = new Sprite();
-        this._backgroundSprite.bitmap = SceneManager.backgroundBitmap();
-        this.addChild(this._backgroundSprite);
+		this._backgroundSprite = new Sprite();
+		this._backgroundSprite.bitmap = SceneManager.backgroundBitmap();
+		this.addChild(this._backgroundSprite);
 
 		// リール背景の設定
 		this.createSprite(_bmpBack, 0, 0, 0);
+
 	};
-	
+
 	// リール初期設定
 	EXC_DoublingSlotMachine.prototype.createReel = function() {
 		// 保持変数初期化
@@ -742,7 +757,7 @@ const ExcDoublingSlotMachinePluginName = document.currentScript.src.match(/^.*\/
 		// リールの状態を回転中に設定
 		for(let i = 0; i < _reelPattern.length; i++) {
 			_reelObj[i].rotation = true;
-			_reelObj[i].rotSpeed = REEL_ROTATION_SPEED;
+			_reelObj[i].rotSpeed = _reelSpeed;
 			for(let j = 0; j <= REEL_DISP_COUNT; j++) {
 				// 回転中絵柄に置換
 				_reelObj[i].sprites[j].bitmap = _bmpPatterns[_reelPattern[i][_reelObj[i].nextIndex(j)]-1][PatternState.blur];
