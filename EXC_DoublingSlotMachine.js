@@ -1242,7 +1242,6 @@ const ExcDoublingSlotMachinePluginName = document.currentScript.src.match(/^.*\/
 			Exc_addCoin(_buyCoin);
 			$gameParty.loseGold(_payMoney);
 			this.redrawText(_txtCoin, Exc_getCoin());
-			this.redrawText(_txtMoney, $gameParty.gold());
 			_valueCoin.display = Exc_getCoin();
 
 			AudioManager.playSe({"name":_buyCoinSE,"volume":90,"pitch":100,"pan":0});
