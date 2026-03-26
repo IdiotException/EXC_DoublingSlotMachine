@@ -9,6 +9,7 @@
 // Version
 // 1.0.0 2023/08/24 初版
 // 1.0.1 2023/09/29 コイン購入時エラーのバグ修正
+// 1.0.2 2026/03/26 役チェックの斜め方向での基準位置の指定の誤りを修正
 //=============================================================================
 
 /*:
@@ -1157,7 +1158,7 @@ const ExcDoublingSlotMachinePluginName = document.currentScript.src.match(/^.*\/
 		}
 		// 斜め右上
 		aligned = true;
-		let work = _reelPattern[baseReel][_reelObj[baseReel].bottomIndex];
+		let work = _reelPattern[baseReel][_reelObj[baseReel].nextIndex(baseReel)];
 		for(let i = baseReel + 1; i < _reelPattern.length; i++) {
 			if(_reelObj[i].rotSpeed != 0 && checkIndex != i) {
 				// リールが停止しておらず、確認対象でもない場合はスキップ
@@ -1180,7 +1181,7 @@ const ExcDoublingSlotMachinePluginName = document.currentScript.src.match(/^.*\/
 		}
 		// 斜め右下
 		aligned = true;
-		work = _reelPattern[baseReel][_reelObj[baseReel].nextIndex(REEL_DISP_COUNT - 1)];
+		work = _reelPattern[baseReel][_reelObj[baseReel].nextIndex(REEL_DISP_COUNT - 1 - baseReel)];
 		for(let i = baseReel + 1; i < _reelPattern.length; i++) {
 			if(_reelObj[i].rotSpeed != 0 && checkIndex != i) {
 				// リールが停止しておらず、確認対象でもない場合はスキップ
